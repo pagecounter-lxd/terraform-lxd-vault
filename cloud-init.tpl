@@ -23,14 +23,10 @@ write_files:
       done
 
       export cluster_name=${cluster_name}
+      export key_name=${cluster_name}
       curl -sLo /tmp/vault.sh https://raw.githubusercontent.com/kikitux/curl-bash/master/vault-ent/vault.sh
       bash /tmp/vault.sh
       sleep 10
-
-      #replace IP of api and cluster for performance standby
-      IP=`ip -f inet addr show $IFACE | sed -En -e 's/.*inet ([0-9.]+).*/\1/p'`
-      sed -i -e "s/http:\/\/0.0.0.0/http:\/\/$IP/g" /etc/vault.d/server.hcl
-      service vault reload
       
       if [[ "$HOSTNAME" =~ "vault01" ]] ; then
         pushd /etc/vault.d/
@@ -43,6 +39,12 @@ write_files:
         #VAULT_TOKEN=$rootToken VAULT_ADDR=http://127.0.0.1:8200 vault operator unseal $recoveryKey
         popd
       fi
+
+      #replace IP of api and cluster for performance standby
+      IP=`ip -f inet addr show $IFACE | sed -En -e 's/.*inet ([0-9.]+).*/\1/p'`
+      sed -i -e "s/http:\/\/0.0.0.0/http:\/\/$IP/g" /etc/vault.d/server.hcl
+      sed -i -e "s/https:\/\/0.0.0.0/https:\/\/$IP/g" /etc/vault.d/server.hcl
+      service vault restart
   - path: "/etc/vault_license.json"
     permissions: "0640"
     owner: "root:root"
